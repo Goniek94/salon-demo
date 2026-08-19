@@ -13,8 +13,10 @@ npm run dev
 
 Projekt działa na danych demonstracyjnych i nie wymaga backendu.
 
-Po uruchomieniu otwórz `http://localhost:3000`. Polecenie `vinext dev` nie wypisuje osobnej linii
-„ready” — jeśli terminal wygląda na zatrzymany, serwer najczęściej już działa.
+Po uruchomieniu otwórz `http://localhost:3000`.
+
+Projekt działa na Next.js (App Router). Wdrożenie: Vercel, bez dodatkowej konfiguracji — framework jest
+wykrywany automatycznie, a strona prerenderuje się statycznie.
 
 ## Tryb symulacji
 

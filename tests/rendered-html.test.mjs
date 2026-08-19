@@ -2,24 +2,14 @@ import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
-async function render() {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  return worker.fetch(
-    new Request("http://localhost/", { headers: { accept: "text/html" } }),
-    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
-    { waitUntil() {}, passThroughOnException() {} },
-  );
+/** Strona `/` jest prerenderowana statycznie, wiec test czyta gotowy HTML z builda. */
+async function renderedHtml() {
+  return readFile(new URL("../.next/server/app/index.html", import.meta.url), "utf8");
 }
 
 test("renders the salon prototype shell and presentation scenario", async () => {
-  const response = await render();
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
+  const html = await renderedHtml();
 
-  const html = await response.text();
   assert.match(html, /SalonOS/);
   assert.match(html, /Pracownia/);
   assert.match(html, /Panel recepcji/i);
@@ -45,4 +35,20 @@ test("keeps the prototype architecture documented and starter preview removed", 
   assert.match(plan, /Plan dalszego rozwoju po akceptacji/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview/SkeletonPreview.tsx", import.meta.url)));
+});
+
+test("runs on Next.js without the Cloudflare Workers stack", async () => {
+  const packageJson = JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8"),
+  );
+  const all = { ...packageJson.dependencies, ...packageJson.devDependencies };
+
+  assert.ok(all.next, "next musi byc zaleznoscia projektu");
+  for (const removed of ["vinext", "wrangler", "@cloudflare/vite-plugin", "vite"]) {
+    assert.equal(all[removed], undefined, `${removed} nie powinien juz byc w package.json`);
+  }
+
+  assert.equal(packageJson.scripts.build, "next build");
+  await assert.rejects(access(new URL("../vite.config.ts", import.meta.url)));
+  await assert.rejects(access(new URL("../worker/index.ts", import.meta.url)));
 });
